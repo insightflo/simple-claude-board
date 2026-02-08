@@ -1,6 +1,8 @@
 //! Status bar widget
 //!
-//! Shows overall progress, active agent count, and keybinding hints.
+//! Shows per-status counters, progress %, uptime, and keybinding hints.
+
+use std::time::Instant;
 
 use ratatui::{
     buffer::Buffer,
@@ -10,73 +12,83 @@ use ratatui::{
     widgets::Widget,
 };
 
-use crate::data::state::{AgentStatus, DashboardState};
+use crate::data::state::DashboardState;
+use crate::data::tasks_parser::TaskStatus;
 
 /// Status bar at the bottom of the screen
 pub struct StatusBar<'a> {
     state: &'a DashboardState,
+    start_time: Instant,
 }
 
 impl<'a> StatusBar<'a> {
-    pub fn new(state: &'a DashboardState) -> Self {
-        Self { state }
+    pub fn new(state: &'a DashboardState, start_time: Instant) -> Self {
+        Self { state, start_time }
+    }
+
+    /// Count tasks by status across all phases
+    fn count_by_status(&self) -> (usize, usize, usize, usize) {
+        let mut completed = 0;
+        let mut in_progress = 0;
+        let mut failed = 0;
+        let mut rest = 0; // pending + blocked
+
+        for phase in &self.state.phases {
+            for task in &phase.tasks {
+                match task.status {
+                    TaskStatus::Completed => completed += 1,
+                    TaskStatus::InProgress => in_progress += 1,
+                    TaskStatus::Failed => failed += 1,
+                    TaskStatus::Pending | TaskStatus::Blocked => rest += 1,
+                }
+            }
+        }
+
+        (completed, in_progress, failed, rest)
+    }
+
+    /// Format elapsed duration as HH:MM:SS
+    fn format_uptime(&self) -> String {
+        let elapsed = self.start_time.elapsed().as_secs();
+        let hours = elapsed / 3600;
+        let minutes = (elapsed % 3600) / 60;
+        let seconds = elapsed % 60;
+        format!("{hours:02}:{minutes:02}:{seconds:02}")
     }
 }
 
 impl<'a> Widget for StatusBar<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
+        let (completed, in_progress, failed, rest) = self.count_by_status();
         let pct = (self.state.overall_progress * 100.0) as u8;
-        let running_agents = self
-            .state
-            .agents
-            .values()
-            .filter(|a| a.status == AgentStatus::Running)
-            .count();
-        let error_agents = self
-            .state
-            .agents
-            .values()
-            .filter(|a| a.status == AgentStatus::Error)
-            .count();
+        let uptime = self.format_uptime();
+
+        let counters = format!(" \u{2714}{completed} \u{25C0}{in_progress} \u{2718}{failed} \u{2298}{rest} ");
+        let progress = format!(" {pct}% ");
+        let uptime_str = format!(" uptime: {uptime} ");
+        let hints = " j/k Tab ? q ";
 
         let mut spans = vec![
             Span::styled(
-                format!(
-                    " {}/{} tasks ({pct}%) ",
-                    self.state.completed_tasks, self.state.total_tasks
-                ),
+                counters,
                 Style::default()
                     .fg(Color::Black)
                     .bg(Color::Green)
                     .add_modifier(Modifier::BOLD),
             ),
             Span::styled(
-                format!(" {running_agents} active "),
+                progress,
                 Style::default().fg(Color::Black).bg(Color::Yellow),
+            ),
+            Span::styled(
+                uptime_str,
+                Style::default().fg(Color::Black).bg(Color::Cyan),
             ),
         ];
 
-        if error_agents > 0 {
-            spans.push(Span::styled(
-                format!(" {error_agents} errors "),
-                Style::default()
-                    .fg(Color::White)
-                    .bg(Color::Red)
-                    .add_modifier(Modifier::BOLD),
-            ));
-        }
-
-        if self.state.failed_tasks > 0 {
-            spans.push(Span::styled(
-                format!(" {} failed ", self.state.failed_tasks),
-                Style::default().fg(Color::White).bg(Color::Red),
-            ));
-        }
-
         // Fill remaining width with keybinding hints
         let used_width: usize = spans.iter().map(|s| s.content.len()).sum();
-        let hints = " j/k:nav  Tab:focus  q:quit  ?:help ";
-        let remaining = area.width as usize - used_width.min(area.width as usize);
+        let remaining = (area.width as usize).saturating_sub(used_width);
         if remaining > hints.len() {
             let padding = remaining - hints.len();
             spans.push(Span::raw(" ".repeat(padding)));
@@ -100,7 +112,7 @@ mod tests {
     #[test]
     fn statusbar_renders() {
         let state = sample_state();
-        let bar = StatusBar::new(&state);
+        let bar = StatusBar::new(&state, Instant::now());
         let area = Rect::new(0, 0, 80, 1);
         let mut buf = Buffer::empty(area);
         bar.render(area, &mut buf);
@@ -109,9 +121,28 @@ mod tests {
     #[test]
     fn statusbar_narrow_renders() {
         let state = sample_state();
-        let bar = StatusBar::new(&state);
+        let bar = StatusBar::new(&state, Instant::now());
         let area = Rect::new(0, 0, 20, 1);
         let mut buf = Buffer::empty(area);
         bar.render(area, &mut buf);
+    }
+
+    #[test]
+    fn count_by_status() {
+        let state = sample_state();
+        let bar = StatusBar::new(&state, Instant::now());
+        let (completed, in_progress, failed, rest) = bar.count_by_status();
+        assert_eq!(completed, 2);
+        assert_eq!(failed, 1);
+        // remaining 5 tasks are pending/blocked
+        assert_eq!(completed + in_progress + failed + rest, state.total_tasks);
+    }
+
+    #[test]
+    fn format_uptime_zero() {
+        let state = DashboardState::default();
+        let bar = StatusBar::new(&state, Instant::now());
+        let uptime = bar.format_uptime();
+        assert_eq!(uptime, "00:00:00");
     }
 }

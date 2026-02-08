@@ -206,7 +206,7 @@ fn run_loop(
             frame.render_widget(agents, layout.agents);
 
             // Bottom: Status bar
-            let statusbar = StatusBar::new(&app.dashboard);
+            let statusbar = StatusBar::new(&app.dashboard, app.start_time);
             frame.render_widget(statusbar, layout.status_bar);
 
             // Help overlay (on top if active)

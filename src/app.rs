@@ -1,5 +1,7 @@
 //! App state management and event loop
 
+use std::time::Instant;
+
 use crate::data::state::DashboardState;
 use crate::data::watcher::FileChange;
 use crate::ui::gantt::GanttState;
@@ -12,6 +14,7 @@ pub struct App {
     pub gantt_state: GanttState,
     pub focused: FocusedPane,
     pub show_help: bool,
+    pub start_time: Instant,
 }
 
 impl App {
@@ -22,6 +25,7 @@ impl App {
             gantt_state: GanttState::default(),
             focused: FocusedPane::TaskList,
             show_help: false,
+            start_time: Instant::now(),
         }
     }
 
