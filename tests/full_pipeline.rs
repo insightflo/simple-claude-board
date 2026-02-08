@@ -151,7 +151,10 @@ fn hook_events_to_agent_panel() {
     let text = buffer_text(&buf);
     assert!(text.contains("main"), "Agent panel should show 'main'");
     assert!(text.contains(">>"), "Agent panel should show Running (>>)");
-    assert!(text.contains("Bash"), "Agent panel should show current tool");
+    assert!(
+        text.contains("Bash"),
+        "Agent panel should show current tool"
+    );
 }
 
 // ===== Pipeline 4: Error → analysis → retry → write-back =====
@@ -290,11 +293,7 @@ fn keyboard_interaction_scenario() {
 fn full_render_pipeline_no_panic() {
     let tmp = tempfile::TempDir::new().unwrap();
     let tasks_file = tmp.path().join("TASKS.md");
-    std::fs::write(
-        &tasks_file,
-        include_str!("fixtures/sample_tasks.md"),
-    )
-    .unwrap();
+    std::fs::write(&tasks_file, include_str!("fixtures/sample_tasks.md")).unwrap();
 
     let events_file = tmp.path().join("events.jsonl");
     std::fs::write(
@@ -363,11 +362,7 @@ fn sequential_file_changes() {
     let tasks_file = tmp.path().join("TASKS.md");
 
     // Initial: 1 pending task
-    std::fs::write(
-        &tasks_file,
-        "# Phase 0: Setup\n\n### [ ] T1: Task one\n",
-    )
-    .unwrap();
+    std::fs::write(&tasks_file, "# Phase 0: Setup\n\n### [ ] T1: Task one\n").unwrap();
 
     let content = std::fs::read_to_string(&tasks_file).unwrap();
     let dashboard = DashboardState::from_tasks_content(&content).unwrap();
@@ -377,11 +372,7 @@ fn sequential_file_changes() {
     assert_eq!(app.dashboard.completed_tasks, 0);
 
     // Change 1: mark task completed
-    std::fs::write(
-        &tasks_file,
-        "# Phase 0: Setup\n\n### [x] T1: Task one\n",
-    )
-    .unwrap();
+    std::fs::write(&tasks_file, "# Phase 0: Setup\n\n### [x] T1: Task one\n").unwrap();
     app.handle_file_change(&FileChange::TasksModified(tasks_file.clone()));
     assert_eq!(app.dashboard.completed_tasks, 1);
 

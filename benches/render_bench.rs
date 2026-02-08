@@ -32,9 +32,7 @@ fn large_state() -> DashboardState {
                 3 => "Failed",
                 _ => "Blocked",
             };
-            md.push_str(&format!(
-                "### [{status}] P{p}-T{t}: Task {t} description\n"
-            ));
+            md.push_str(&format!("### [{status}] P{p}-T{t}: Task {t} description\n"));
             md.push_str("- **담당**: @backend-specialist\n\n");
         }
     }
@@ -77,8 +75,7 @@ fn bench_detail_render(c: &mut Criterion) {
 
     c.bench_function("detail_render", |b| {
         b.iter(|| {
-            let widget =
-                DetailWidget::from_selection(&state, Some((0, 0)), 1, true);
+            let widget = DetailWidget::from_selection(&state, Some((0, 0)), 1, true);
             let mut buf = Buffer::empty(area);
             widget.render(black_box(area), &mut buf);
             black_box(buf);

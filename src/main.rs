@@ -257,10 +257,7 @@ fn run_loop(
                 AppEvent::Key(key) => {
                     if app.show_retry_modal {
                         // Modal takes priority: only y/n/q/Esc
-                        let retryable = app
-                            .retry_target
-                            .as_ref()
-                            .is_some_and(|t| t.retryable);
+                        let retryable = app.retry_target.as_ref().is_some_and(|t| t.retryable);
                         match key_to_action(key) {
                             Action::Confirm if retryable => app.confirm_retry(),
                             Action::Cancel | Action::Quit => app.cancel_retry(),

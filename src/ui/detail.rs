@@ -217,9 +217,7 @@ impl<'a> DetailWidget<'a> {
                     lines.push(Line::raw(""));
                     lines.push(Line::styled(
                         "Errors:",
-                        Style::default()
-                            .fg(Color::Red)
-                            .add_modifier(Modifier::BOLD),
+                        Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
                     ));
                     for err in errors {
                         let msg_short = if err.message.len() > 50 {
@@ -231,11 +229,7 @@ impl<'a> DetailWidget<'a> {
                             Span::styled("  !! ", Style::default().fg(Color::Red)),
                             Span::styled(msg_short, Style::default().fg(Color::White)),
                         ]));
-                        let retry_str = if err.retryable {
-                            "Retry"
-                        } else {
-                            "No retry"
-                        };
+                        let retry_str = if err.retryable { "Retry" } else { "No retry" };
                         lines.push(Line::from(vec![
                             Span::styled("     ", Style::default()),
                             Span::styled(
@@ -354,8 +348,7 @@ mod tests {
             suggestion: "Check file permissions",
             timestamp: Utc::now(),
         };
-        let widget =
-            DetailWidget::new(DetailContent::Task(task, "Setup", vec![&err]), false);
+        let widget = DetailWidget::new(DetailContent::Task(task, "Setup", vec![&err]), false);
         let lines = widget.build_lines();
         let has_errors_header = lines
             .iter()
@@ -407,11 +400,9 @@ mod tests {
         assert!(!task.body.is_empty(), "fixture task should have body");
         let widget = DetailWidget::new(DetailContent::Task(task, "Setup", vec![]), false);
         let lines = widget.build_lines();
-        let has_spec = lines.iter().any(|l| {
-            l.spans
-                .iter()
-                .any(|s| s.content.contains("스펙"))
-        });
+        let has_spec = lines
+            .iter()
+            .any(|l| l.spans.iter().any(|s| s.content.contains("스펙")));
         assert!(has_spec, "detail should show body with spec line");
     }
 }

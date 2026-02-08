@@ -60,9 +60,7 @@ impl RetryModal {
         } else {
             lines.push(Line::styled(
                 "  Not retryable",
-                Style::default()
-                    .fg(Color::Red)
-                    .add_modifier(Modifier::BOLD),
+                Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
             ));
             lines.push(Line::raw(""));
             lines.push(Line::styled(

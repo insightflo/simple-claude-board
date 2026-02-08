@@ -238,11 +238,9 @@ mod tests {
         let lines = panel.build_lines();
         // Should have agent line + error summary line
         assert!(lines.len() >= 2);
-        let error_line = lines.iter().find(|l| {
-            l.spans
-                .iter()
-                .any(|s| s.content.contains("!!"))
-        });
+        let error_line = lines
+            .iter()
+            .find(|l| l.spans.iter().any(|s| s.content.contains("!!")));
         assert!(error_line.is_some(), "should have error summary line");
     }
 

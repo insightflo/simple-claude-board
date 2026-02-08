@@ -329,11 +329,7 @@ mod tests {
     fn confirm_retry_non_retryable_does_not_write() {
         let tmp = tempfile::TempDir::new().unwrap();
         let tasks_file = tmp.path().join("TASKS.md");
-        std::fs::write(
-            &tasks_file,
-            "# Phase 1\n\n### [Failed] T1: Test task\n",
-        )
-        .unwrap();
+        std::fs::write(&tasks_file, "# Phase 1\n\n### [Failed] T1: Test task\n").unwrap();
 
         let content = std::fs::read_to_string(&tasks_file).unwrap();
         let dashboard = DashboardState::from_tasks_content(&content).unwrap();

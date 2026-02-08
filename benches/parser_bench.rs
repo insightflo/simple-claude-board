@@ -60,9 +60,7 @@ fn bench_state_from_content(c: &mut Criterion) {
 fn bench_hook_events_parse(c: &mut Criterion) {
     let input = include_str!("../tests/fixtures/sample_hooks/agent_events.jsonl");
     c.bench_function("parse_hook_events (6 events)", |b| {
-        b.iter(|| {
-            oh_my_claude_board::data::hook_parser::parse_hook_events(black_box(input))
-        })
+        b.iter(|| oh_my_claude_board::data::hook_parser::parse_hook_events(black_box(input)))
     });
 }
 
@@ -78,9 +76,7 @@ fn bench_hook_events_large(c: &mut Criterion) {
         jsonl.push('\n');
     }
     c.bench_function("parse_hook_events (1000 events)", |b| {
-        b.iter(|| {
-            oh_my_claude_board::data::hook_parser::parse_hook_events(black_box(&jsonl))
-        })
+        b.iter(|| oh_my_claude_board::data::hook_parser::parse_hook_events(black_box(&jsonl)))
     });
 }
 

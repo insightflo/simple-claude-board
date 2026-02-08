@@ -530,7 +530,10 @@ mod tests {
 
         // Should be 2, not 3 (no accumulation)
         assert_eq!(state.agents.get("main").unwrap().event_count, 2);
-        assert_eq!(state.agents.get("main").unwrap().current_tool.as_deref(), Some("Bash"));
+        assert_eq!(
+            state.agents.get("main").unwrap().current_tool.as_deref(),
+            Some("Bash")
+        );
     }
 
     #[test]

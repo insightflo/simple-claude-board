@@ -103,7 +103,10 @@ fn error_analysis_retryable_in_detail() {
     let mut buf = Buffer::empty(area);
     widget.render(area, &mut buf);
     let text = buffer_text(&buf);
-    assert!(text.contains("No retry"), "Permission error should show No retry");
+    assert!(
+        text.contains("No retry"),
+        "Permission error should show No retry"
+    );
 
     // Network error (retryable)
     let err_net = ErrorRecord {
@@ -173,7 +176,10 @@ fn r_key_ignored_on_non_failed_task() {
     // Select P0-T0.1 (Completed) at index 1
     app.gantt_state.selected = 1;
     app.open_retry_modal();
-    assert!(!app.show_retry_modal, "Modal should NOT open for Completed task");
+    assert!(
+        !app.show_retry_modal,
+        "Modal should NOT open for Completed task"
+    );
     assert!(app.retry_target.is_none());
 }
 
@@ -211,10 +217,7 @@ fn modal_y_updates_tasks_md() {
         result.contains("[InProgress] P1-R3-T1:"),
         "File should be updated to InProgress"
     );
-    assert!(
-        !result.contains("[Failed]"),
-        "Failed status should be gone"
-    );
+    assert!(!result.contains("[Failed]"), "Failed status should be gone");
 }
 
 // ===== 7. Navigation: modal n closes without write =====
@@ -335,8 +338,14 @@ fn end_to_end_error_flow() {
     widget.render(area, &mut buf);
 
     let text = buffer_text(&buf);
-    assert!(text.contains("Permission"), "Detail should show Permission category");
-    assert!(text.contains("Network"), "Detail should show Network category");
+    assert!(
+        text.contains("Permission"),
+        "Detail should show Permission category"
+    );
+    assert!(
+        text.contains("Network"),
+        "Detail should show Network category"
+    );
     assert!(text.contains("Errors"), "Detail should show Errors header");
 }
 
@@ -373,8 +382,5 @@ fn retry_modal_renders_with_error_fields() {
     let text2 = buffer_text(&buf2);
     assert!(text2.contains("P1-R3-T1"), "Should show task_id");
     assert!(text2.contains("Not retryable"), "Should show Not retryable");
-    assert!(
-        text2.contains("Press any key"),
-        "Should show close hint"
-    );
+    assert!(text2.contains("Press any key"), "Should show close hint");
 }

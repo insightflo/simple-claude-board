@@ -76,11 +76,7 @@ mod tests {
     fn update_blocked_to_in_progress() {
         let tmp = tempfile::TempDir::new().unwrap();
         let path = tmp.path().join("TASKS.md");
-        fs::write(
-            &path,
-            "### [Blocked] P2-S1-T1: Gantt chart widget\n",
-        )
-        .unwrap();
+        fs::write(&path, "### [Blocked] P2-S1-T1: Gantt chart widget\n").unwrap();
 
         let found = update_task_status(&path, "P2-S1-T1", "InProgress").unwrap();
         assert!(found);
