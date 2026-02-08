@@ -207,8 +207,16 @@ fn run_loop(
             );
             frame.render_widget(detail, layout.detail);
 
-            // Right bottom: Agent activity
-            let agents = AgentPanel::new(&app.dashboard);
+            // Right bottom: Agent activity (highlights agent for selected task)
+            let selected_agent_name = selected_task
+                .and_then(|(pi, ti)| {
+                    app.dashboard
+                        .phases
+                        .get(pi)
+                        .and_then(|phase| phase.tasks.get(ti))
+                })
+                .and_then(|task| app.dashboard.agent_for_task(&task.id));
+            let agents = AgentPanel::new(&app.dashboard).with_selected_agent(selected_agent_name);
             frame.render_widget(agents, layout.agents);
 
             // Bottom: Status bar

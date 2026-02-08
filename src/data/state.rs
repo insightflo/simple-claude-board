@@ -43,6 +43,8 @@ pub struct DashboardState {
     pub phases: Vec<ParsedPhase>,
     pub agents: HashMap<String, AgentState>,
     pub task_times: HashMap<String, TaskTiming>,
+    /// Maps task_id → agent_id (from hook events, persists after agent ends)
+    pub task_agents: HashMap<String, String>,
     pub total_tasks: usize,
     pub completed_tasks: usize,
     pub failed_tasks: usize,
@@ -55,6 +57,7 @@ impl Default for DashboardState {
             phases: Vec::new(),
             agents: HashMap::new(),
             task_times: HashMap::new(),
+            task_agents: HashMap::new(),
             total_tasks: 0,
             completed_tasks: 0,
             failed_tasks: 0,
@@ -128,6 +131,9 @@ impl DashboardState {
                 EventType::AgentStart => {
                     agent.status = AgentStatus::Running;
                     agent.current_task = Some(event.task_id.clone());
+                    // Persist task → agent mapping
+                    self.task_agents
+                        .insert(event.task_id.clone(), event.agent_id.clone());
                     let timing = self.task_times.entry(event.task_id.clone()).or_default();
                     if timing.started_at.is_none() {
                         timing.started_at = Some(event.timestamp);
@@ -171,6 +177,11 @@ impl DashboardState {
             }
         }
         Ok(())
+    }
+
+    /// Find the agent assigned to a task (from hook event history)
+    pub fn agent_for_task(&self, task_id: &str) -> Option<&str> {
+        self.task_agents.get(task_id).map(|s| s.as_str())
     }
 
     /// Reload tasks from content (used when file watcher detects changes)

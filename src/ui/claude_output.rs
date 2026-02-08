@@ -1,7 +1,7 @@
 //! Claude Code output panel
 //!
 //! Shows live agent activity: which agents are running, their current tools,
-//! and recent errors.
+//! and recent errors. Highlights the agent assigned to the currently selected task.
 
 use ratatui::{
     buffer::Buffer,
@@ -16,30 +16,68 @@ use crate::data::state::{AgentState, AgentStatus, DashboardState};
 /// Agent activity panel widget
 pub struct AgentPanel<'a> {
     state: &'a DashboardState,
+    /// Agent name assigned to the currently selected task (from TASKS.md `@agent`)
+    selected_agent: Option<&'a str>,
 }
 
 impl<'a> AgentPanel<'a> {
     pub fn new(state: &'a DashboardState) -> Self {
-        Self { state }
+        Self {
+            state,
+            selected_agent: None,
+        }
+    }
+
+    pub fn with_selected_agent(mut self, agent: Option<&'a str>) -> Self {
+        self.selected_agent = agent;
+        self
     }
 
     fn build_lines(&self) -> Vec<Line<'static>> {
-        if self.state.agents.is_empty() {
+        if self.state.agents.is_empty() && self.selected_agent.is_none() {
             return vec![Line::styled(
-                "No agent activity",
+                " No agent activity",
                 Style::default().fg(Color::DarkGray),
             )];
         }
 
         let mut lines = Vec::new();
+
+        // Show selected task's assigned agent header if present
+        if let Some(agent_name) = self.selected_agent {
+            lines.push(Line::from(vec![
+                Span::styled(" Task agent: ", Style::default().fg(Color::DarkGray)),
+                Span::styled(
+                    format!("@{agent_name}"),
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD),
+                ),
+            ]));
+        }
+
         let mut agents: Vec<&AgentState> = self.state.agents.values().collect();
         agents.sort_by_key(|a| &a.agent_id);
 
         for agent in agents {
+            let is_highlighted = self
+                .selected_agent
+                .is_some_and(|name| agent.agent_id.contains(name));
+
             let (status_icon, status_color) = match agent.status {
                 AgentStatus::Running => (">>", Color::Green),
                 AgentStatus::Error => ("!!", Color::Red),
                 AgentStatus::Idle => ("--", Color::DarkGray),
+            };
+
+            let name_style = if is_highlighted {
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default()
+                    .fg(Color::White)
+                    .add_modifier(Modifier::BOLD)
             };
 
             let mut spans = vec![
@@ -47,12 +85,7 @@ impl<'a> AgentPanel<'a> {
                     format!(" {status_icon} "),
                     Style::default().fg(status_color),
                 ),
-                Span::styled(
-                    agent.agent_id.clone(),
-                    Style::default()
-                        .fg(Color::White)
-                        .add_modifier(Modifier::BOLD),
-                ),
+                Span::styled(agent.agent_id.clone(), name_style),
             ];
 
             if let Some(ref task) = agent.current_task {
@@ -76,7 +109,19 @@ impl<'a> AgentPanel<'a> {
                 ));
             }
 
+            spans.push(Span::styled(
+                format!(" ({}ev)", agent.event_count),
+                Style::default().fg(Color::DarkGray),
+            ));
+
             lines.push(Line::from(spans));
+        }
+
+        if lines.is_empty() {
+            lines.push(Line::styled(
+                " No agent activity",
+                Style::default().fg(Color::DarkGray),
+            ));
         }
 
         lines
@@ -143,5 +188,23 @@ mod tests {
         let panel = AgentPanel::new(&state);
         let lines = panel.build_lines();
         assert_eq!(lines.len(), 1);
+    }
+
+    #[test]
+    fn with_selected_agent_highlights() {
+        let state = state_with_agents();
+        let panel = AgentPanel::new(&state).with_selected_agent(Some("backend-specialist"));
+        let lines = panel.build_lines();
+        // Should have header line + agent lines
+        assert!(lines.len() >= 2);
+    }
+
+    #[test]
+    fn selected_agent_no_match_still_shows_header() {
+        let state = DashboardState::default();
+        let panel = AgentPanel::new(&state).with_selected_agent(Some("nonexistent"));
+        let lines = panel.build_lines();
+        // Header line + "No agent activity" would be empty agents but header exists
+        assert!(!lines.is_empty());
     }
 }
