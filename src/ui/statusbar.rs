@@ -66,7 +66,7 @@ impl<'a> Widget for StatusBar<'a> {
         let counters = format!(" \u{2714}{completed} \u{25C0}{in_progress} \u{2718}{failed} \u{2298}{rest} ");
         let progress = format!(" {pct}% ");
         let uptime_str = format!(" uptime: {uptime} ");
-        let hints = " j/k Tab ? q ";
+        let hints = " j/k Tab Space v ? q ";
 
         let mut spans = vec![
             Span::styled(

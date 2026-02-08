@@ -231,6 +231,8 @@ fn run_loop(
                     Action::MoveUp => app.move_up(),
                     Action::ToggleFocus => app.toggle_focus(),
                     Action::ToggleHelp => app.toggle_help(),
+                    Action::ToggleCollapse => app.toggle_collapse(),
+                    Action::ToggleView => app.toggle_view(),
                     Action::None => {}
                 },
                 AppEvent::Resize(_, _) => {} // terminal auto-handles resize

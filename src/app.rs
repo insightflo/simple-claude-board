@@ -54,6 +54,18 @@ impl App {
         self.gantt_state.select_prev();
     }
 
+    /// Toggle collapse on the currently selected phase header
+    pub fn toggle_collapse(&mut self) {
+        if let Some(pi) = self.gantt_state.selected_phase_index(&self.dashboard) {
+            self.gantt_state.toggle_collapse(pi);
+        }
+    }
+
+    /// Toggle between Tree and HorizontalBar view modes
+    pub fn toggle_view(&mut self) {
+        self.gantt_state.toggle_view();
+    }
+
     /// Get the currently selected task as (phase_idx, task_idx)
     pub fn selected_task(&self) -> Option<(usize, usize)> {
         self.gantt_state.selected_task(&self.dashboard)

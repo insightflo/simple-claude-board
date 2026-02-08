@@ -5,18 +5,18 @@
 Real-time visualization of Claude Code agent activity and task progress in your terminal.
 
 ```
-+----------- Tasks -----------+---------- Detail ----------+
-| # Phase 0: Setup            | P1-R1-T1: Parser impl     |
-|   [x] P0-T0.1: Cargo setup  | Status: InProgress        |
-|   [x] P0-T0.2: CI setup     | Agent: @backend-specialist|
-| # Phase 1: Data Engine      | Blocked by: P0-T0.1       |
-| > [/] P1-R1-T1: Parser impl +------ Agents --------------+
-|   [ ] P1-R2-T1: Hook parser | >> backend-specialist [T1] |
-|   [!] P1-R3-T1: Watcher     |    -> Edit                 |
-| # Phase 2: TUI Core         | -- test-specialist         |
-|   [B] P2-S1-T1: Gantt       +----------------------------+
-| Tasks: 8 | Done: 2 | Progress: 25% ==================    |
-+-----------------------------------------------------------+
++------ Tasks (Tree) ---- v:view ---+---------- Detail ----------+
+| ▼ Phase 0 Setup  ████░░ 67%      | P1-R1-T1: Parser impl     |
+|   ├─ [x] P0-T0.1: Cargo setup    | Status: InProgress        |
+|   └─ [/] P0-T0.2: CI setup       | Agent: @backend-specialist|
+| ▶ Phase 1 Data Engine  33%       | Blocked by: P0-T0.1       |
+| ▼ Phase 2 TUI Core     0%        +------ Agents --------------+
+|   ├─ [ ] P2-S1-T1: Gantt         | >> backend-specialist [T1] |
+|   └─ [B] P2-S1-T2: Detail        |    -> Edit                 |
+|                                   | -- test-specialist         |
++-----------------------------------+----------------------------+
+| ✔2 ◀1 ✘1 ⊘4  25%  uptime: 00:05:12  j/k Tab Space v ? q     |
++----------------------------------------------------------------+
 ```
 
 ## Features
@@ -25,8 +25,36 @@ Real-time visualization of Claude Code agent activity and task progress in your 
 - **Agent activity panel** -- Shows which Claude Code agents are running, their current tools, and errors
 - **Hook event bridge** -- Includes `event-logger.js` hook that logs tool use to JSONL for the dashboard to consume
 - **File watcher** -- Uses `notify` for filesystem events (FSEvents on macOS, inotify on Linux)
-- **Vim-style navigation** -- `j`/`k` to navigate, `Tab` to switch panes, `?` for help
+- **Dual Gantt view** -- Tree view with `▼`/`▶` collapse and `├─`/`└─` connectors, plus horizontal bar chart; toggle with `v`
+- **Vim-style navigation** -- `j`/`k` to navigate, `Tab` to switch panes, `Space` to collapse/expand, `?` for help
 - **~1MB binary** -- Optimized release build with LTO and symbol stripping
+
+## Prerequisites
+
+### Rust (1.75+)
+
+```bash
+# macOS / Linux
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source "$HOME/.cargo/env"
+
+# Verify
+rustc --version
+```
+
+### Node.js (18+, for hook script)
+
+```bash
+# macOS (Homebrew)
+brew install node
+
+# Linux (via nvm - recommended)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+nvm install --lts
+
+# Verify
+node --version
+```
 
 ## Installation
 
@@ -38,8 +66,6 @@ cargo install --path .
 cargo build --release
 # Binary at target/release/oh-my-claude-board
 ```
-
-**Requirements:** Rust 1.75+, Node.js (for hook script)
 
 ## CLI Reference
 
@@ -170,6 +196,8 @@ Status tags: `[x]` completed, `[ ]` pending, `[InProgress]` or `[/]` in progress
 | `j` / `Down` | Move down |
 | `k` / `Up` | Move up |
 | `Tab` | Switch focus (Task List / Detail) |
+| `Space` | Collapse/expand phase |
+| `v` | Switch view (Tree / Gantt bar) |
 | `?` | Toggle help overlay |
 | `q` / `Esc` | Quit |
 
@@ -202,7 +230,7 @@ src/
     state.rs           Unified DashboardState model
   ui/
     layout.rs          Screen split computation
-    gantt.rs           Gantt chart / task tree widget
+    gantt.rs           Dual Gantt view (tree + horizontal bar)
     detail.rs          Task detail panel
     claude_output.rs   Agent activity panel
     statusbar.rs       Bottom status bar
@@ -231,8 +259,8 @@ src/
 ## Development
 
 ```bash
-# Run tests (106 tests)
-cargo test --lib
+# Run tests (117 lib + 27 integration tests)
+cargo test
 
 # Run with ignored tests (macOS watcher flaky tests)
 cargo test --lib -- --include-ignored

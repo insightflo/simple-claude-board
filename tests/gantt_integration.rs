@@ -126,7 +126,7 @@ fn selecting_phase_header_returns_none() {
     let gs = GanttState {
         selected: 0,
         total_items: 11,
-        offset: 0,
+        ..Default::default()
     };
     assert!(gs.selected_task(&state).is_none());
 }
@@ -138,14 +138,14 @@ fn selecting_task_returns_correct_indices() {
     let gs = GanttState {
         selected: 1,
         total_items: 11,
-        offset: 0,
+        ..Default::default()
     };
     assert_eq!(gs.selected_task(&state), Some((0, 0)));
 
     let gs2 = GanttState {
         selected: 2,
         total_items: 11,
-        offset: 0,
+        ..Default::default()
     };
     assert_eq!(gs2.selected_task(&state), Some((0, 1)));
 }

@@ -48,6 +48,8 @@ pub enum Action {
     MoveDown,
     ToggleFocus,
     ToggleHelp,
+    ToggleCollapse,
+    ToggleView,
     None,
 }
 
@@ -61,6 +63,8 @@ pub fn key_to_action(key: KeyEvent) -> Action {
         KeyCode::Char('k' | 'ㅏ') | KeyCode::Up => Action::MoveUp,
         KeyCode::Tab => Action::ToggleFocus,
         KeyCode::Char('?') => Action::ToggleHelp,
+        KeyCode::Char(' ') => Action::ToggleCollapse,
+        KeyCode::Char('v') => Action::ToggleView,
         _ => Action::None,
     }
 }

@@ -6,6 +6,8 @@
 use std::collections::HashMap;
 use std::path::Path;
 
+use chrono::{DateTime, Utc};
+
 use crate::data::hook_parser::{self, EventType, HookEvent};
 use crate::data::tasks_parser::{self, ParsedPhase, TaskStatus};
 
@@ -28,11 +30,19 @@ pub struct AgentState {
     pub error_count: usize,
 }
 
+/// Timing info for a task derived from hook events
+#[derive(Debug, Clone, Default)]
+pub struct TaskTiming {
+    pub started_at: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+}
+
 /// The complete dashboard state
 #[derive(Debug, Clone)]
 pub struct DashboardState {
     pub phases: Vec<ParsedPhase>,
     pub agents: HashMap<String, AgentState>,
+    pub task_times: HashMap<String, TaskTiming>,
     pub total_tasks: usize,
     pub completed_tasks: usize,
     pub failed_tasks: usize,
@@ -44,6 +54,7 @@ impl Default for DashboardState {
         Self {
             phases: Vec::new(),
             agents: HashMap::new(),
+            task_times: HashMap::new(),
             total_tasks: 0,
             completed_tasks: 0,
             failed_tasks: 0,
@@ -117,9 +128,20 @@ impl DashboardState {
                 EventType::AgentStart => {
                     agent.status = AgentStatus::Running;
                     agent.current_task = Some(event.task_id.clone());
+                    let timing = self
+                        .task_times
+                        .entry(event.task_id.clone())
+                        .or_default();
+                    if timing.started_at.is_none() {
+                        timing.started_at = Some(event.timestamp);
+                    }
                 }
                 EventType::AgentEnd => {
                     agent.status = AgentStatus::Idle;
+                    if let Some(ref task_id) = agent.current_task {
+                        let timing = self.task_times.entry(task_id.clone()).or_default();
+                        timing.completed_at = Some(event.timestamp);
+                    }
                     agent.current_task = None;
                     agent.current_tool = None;
                 }

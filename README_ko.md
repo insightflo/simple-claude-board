@@ -5,18 +5,18 @@
 터미널에서 Claude Code 에이전트 활동과 태스크 진행 상황을 실시간으로 시각화합니다.
 
 ```
-+----------- Tasks -----------+---------- Detail ----------+
-| # Phase 0: 셋업             | P1-R1-T1: 파서 구현        |
-|   [x] P0-T0.1: Cargo 설정   | 상태: InProgress           |
-|   [x] P0-T0.2: CI 설정      | 담당: @backend-specialist  |
-| # Phase 1: 데이터 엔진      | 의존: P0-T0.1              |
-| > [/] P1-R1-T1: 파서 구현   +------ Agents --------------+
-|   [ ] P1-R2-T1: Hook 파서   | >> backend-specialist [T1] |
-|   [!] P1-R3-T1: Watcher     |    -> Edit                 |
-| # Phase 2: TUI 코어         | -- test-specialist         |
-|   [B] P2-S1-T1: 간트        +----------------------------+
-| Tasks: 8 | Done: 2 | Progress: 25% ==================    |
-+-----------------------------------------------------------+
++------ Tasks (Tree) ---- v:view ---+---------- Detail ----------+
+| ▼ Phase 0 셋업  ████░░ 67%       | P1-R1-T1: 파서 구현        |
+|   ├─ [x] P0-T0.1: Cargo 설정     | 상태: InProgress           |
+|   └─ [/] P0-T0.2: CI 설정        | 담당: @backend-specialist  |
+| ▶ Phase 1 데이터 엔진  33%       | 의존: P0-T0.1              |
+| ▼ Phase 2 TUI 코어     0%        +------ Agents --------------+
+|   ├─ [ ] P2-S1-T1: 간트          | >> backend-specialist [T1] |
+|   └─ [B] P2-S1-T2: 상세          |    -> Edit                 |
+|                                   | -- test-specialist         |
++-----------------------------------+----------------------------+
+| ✔2 ◀1 ✘1 ⊘4  25%  uptime: 00:05:12  j/k Tab Space v ? q     |
++----------------------------------------------------------------+
 ```
 
 ## 주요 기능
@@ -25,8 +25,36 @@
 - **에이전트 활동 패널** -- 어떤 Claude Code 에이전트가 실행 중인지, 현재 사용 중인 도구, 에러 현황 표시
 - **Hook 이벤트 브릿지** -- `event-logger.js` hook이 도구 사용을 JSONL로 기록하여 대시보드에 전달
 - **파일 감시** -- `notify` 기반 파일시스템 이벤트 (macOS FSEvents, Linux inotify)
-- **Vim 스타일 네비게이션** -- `j`/`k`로 이동, `Tab`으로 패널 전환, `?`로 도움말 (한글 IME 지원)
+- **듀얼 간트 뷰** -- `▼`/`▶` 접기/펼치기 트리 뷰 + `├─`/`└─` 커넥터, 수평 막대 차트; `v`로 전환
+- **Vim 스타일 네비게이션** -- `j`/`k`로 이동, `Tab`으로 패널 전환, `Space`로 접기/펼치기, `?`로 도움말 (한글 IME 지원)
 - **~1MB 바이너리** -- LTO + 심볼 스트리핑으로 최적화된 릴리스 빌드
+
+## 사전 요구사항
+
+### Rust (1.75+)
+
+```bash
+# macOS / Linux
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source "$HOME/.cargo/env"
+
+# 확인
+rustc --version
+```
+
+### Node.js (18+, hook 스크립트용)
+
+```bash
+# macOS (Homebrew)
+brew install node
+
+# Linux (nvm 권장)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+nvm install --lts
+
+# 확인
+node --version
+```
 
 ## 설치
 
@@ -38,8 +66,6 @@ cargo install --path .
 cargo build --release
 # 바이너리 위치: target/release/oh-my-claude-board
 ```
-
-**요구사항:** Rust 1.75+, Node.js (hook 스크립트용)
 
 ## CLI 레퍼런스
 
@@ -170,6 +196,8 @@ Claude Code (도구 사용)
 | `j` / `Down` | 아래로 이동 | `ㅓ` |
 | `k` / `Up` | 위로 이동 | `ㅏ` |
 | `Tab` | 포커스 전환 (태스크 목록 / 상세) | |
+| `Space` | Phase 접기/펼치기 | |
+| `v` | 뷰 전환 (트리 / 간트 바) | |
 | `?` | 도움말 오버레이 토글 | |
 | `q` / `Esc` | 종료 | `ㅂ` |
 
@@ -202,7 +230,7 @@ src/
     state.rs           통합 DashboardState 모델
   ui/
     layout.rs          화면 분할 계산
-    gantt.rs           간트 차트 / 태스크 트리 위젯
+    gantt.rs           듀얼 간트 뷰 (트리 + 수평 바)
     detail.rs          태스크 상세 패널
     claude_output.rs   에이전트 활동 패널
     statusbar.rs       하단 상태바
@@ -231,8 +259,8 @@ src/
 ## 개발
 
 ```bash
-# 테스트 실행 (106개)
-cargo test --lib
+# 테스트 실행 (117 lib + 27 통합 테스트)
+cargo test
 
 # 무시된 테스트 포함 실행 (macOS watcher 플래키 테스트)
 cargo test --lib -- --include-ignored
