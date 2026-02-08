@@ -235,101 +235,130 @@ impl<'a> GanttWidget<'a> {
 
     /// Build lines for the horizontal bar view
     fn build_bar_lines(&self, gantt_state: &GanttState) -> Vec<(Line<'static>, bool)> {
-        // Collect all tasks with their timing info
-        type TaskRow<'b> = (&'b str, &'b TaskStatus, Option<DateTime<Utc>>, Option<DateTime<Utc>>);
-        let mut rows: Vec<TaskRow<'_>> = Vec::new();
-
-        for phase in &self.state.phases {
-            for task in &phase.tasks {
-                let timing = self.state.task_times.get(&task.id);
-                let started = timing.and_then(|t| t.started_at);
-                let completed = timing.and_then(|t| t.completed_at);
-                rows.push((&task.id, &task.status, started, completed));
-            }
-        }
-
-        if rows.is_empty() {
+        if self.state.phases.is_empty() {
             return vec![(Line::raw("  No tasks"), false)];
         }
 
-        // Find time bounds from all tasks with timing data
+        // Collect timing info for time bounds calculation
         let now = Utc::now();
-        let earliest = rows
-            .iter()
-            .filter_map(|(_, _, s, _)| *s)
-            .min()
-            .unwrap_or(now);
-        let latest = rows
-            .iter()
-            .filter_map(|(_, _, _, c)| *c)
-            .max()
-            .unwrap_or(now);
+        let mut all_starts: Vec<DateTime<Utc>> = Vec::new();
+        let mut all_ends: Vec<DateTime<Utc>> = Vec::new();
+        for phase in &self.state.phases {
+            for task in &phase.tasks {
+                if let Some(timing) = self.state.task_times.get(&task.id) {
+                    if let Some(s) = timing.started_at {
+                        all_starts.push(s);
+                    }
+                    if let Some(c) = timing.completed_at {
+                        all_ends.push(c);
+                    }
+                }
+            }
+        }
+        let earliest = all_starts.iter().copied().min().unwrap_or(now);
+        let latest = all_ends.iter().copied().max().unwrap_or(now);
         let total_secs = (latest - earliest).num_seconds().max(1) as f64;
 
-        // Determine label width (max task id length + padding)
-        let label_width = rows.iter().map(|(id, _, _, _)| id.len()).max().unwrap_or(8) + 1;
+        // Determine label width from all task IDs
+        let label_width = self
+            .state
+            .phases
+            .iter()
+            .flat_map(|p| p.tasks.iter().map(|t| t.id.len()))
+            .max()
+            .unwrap_or(8)
+            + 1;
 
-        // Build header with time scale
         let bar_area_width = 30usize;
         let duration_mins = total_secs / 60.0;
         let time_header = build_time_header(label_width, bar_area_width, duration_mins);
-        let mut lines = vec![(time_header, false)];
+        let mut lines: Vec<(Line<'static>, bool)> = vec![(time_header, false)];
+        let mut line_idx = 1usize;
 
-        // Build bar rows
-        for (ri, (task_id, status, started, completed)) in rows.iter().enumerate() {
-            // +1 for time header row
-            let is_selected = (ri + 1) == gantt_state.selected;
-            let color = status_color(status);
-
-            // Pad task id to label width
-            let label = format!("{:>width$} ", task_id, width = label_width);
-
-            // Calculate bar position and length
-            let (bar_start, bar_len) = match (started, completed) {
-                (Some(s), Some(c)) => {
-                    let start_offset = (*s - earliest).num_seconds().max(0) as f64 / total_secs;
-                    let end_offset = (*c - earliest).num_seconds().max(0) as f64 / total_secs;
-                    let col = (start_offset * bar_area_width as f64) as usize;
-                    let len =
-                        ((end_offset - start_offset) * bar_area_width as f64).ceil() as usize;
-                    (col, len.max(1))
-                }
-                (Some(s), None) => {
-                    // In progress: bar from start to now
-                    let start_offset = (*s - earliest).num_seconds().max(0) as f64 / total_secs;
-                    let end_offset = (now - earliest).num_seconds().max(0) as f64 / total_secs;
-                    let col = (start_offset * bar_area_width as f64) as usize;
-                    let len =
-                        ((end_offset - start_offset) * bar_area_width as f64).ceil() as usize;
-                    (col, len.max(1))
-                }
-                _ => {
-                    // No timing: place at estimated position by row order
-                    let pos =
-                        (ri as f64 / rows.len().max(1) as f64 * bar_area_width as f64) as usize;
-                    (pos, 2)
-                }
-            };
-
-            let bar_char = match status {
-                TaskStatus::Completed | TaskStatus::InProgress => '\u{2588}', // █
-                _ => '\u{2591}',                                              // ░
-            };
-
-            let mut bar = String::new();
-            for i in 0..bar_area_width {
-                if i >= bar_start && i < bar_start + bar_len {
-                    bar.push(bar_char);
-                } else {
-                    bar.push(' ');
-                }
-            }
-
-            let line = Line::from(vec![
-                Span::styled(label, Style::default().fg(Color::White)),
-                Span::styled(bar, Style::default().fg(color)),
+        for phase in &self.state.phases {
+            // Phase separator header
+            let pct = (phase.progress() * 100.0) as u8;
+            let phase_line = Line::from(vec![
+                Span::styled(
+                    format!(" {} ", phase.id),
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::styled(
+                    phase.name.clone(),
+                    Style::default().add_modifier(Modifier::BOLD),
+                ),
+                Span::styled(format!(" {pct}%"), Style::default().fg(Color::DarkGray)),
             ]);
-            lines.push((line, is_selected));
+            let is_selected = line_idx == gantt_state.selected;
+            lines.push((phase_line, is_selected));
+            line_idx += 1;
+
+            // Task bar rows
+            for (ti, task) in phase.tasks.iter().enumerate() {
+                let is_selected = line_idx == gantt_state.selected;
+                let color = status_color(&task.status);
+                let timing = self.state.task_times.get(&task.id);
+                let started = timing.and_then(|t| t.started_at);
+                let completed = timing.and_then(|t| t.completed_at);
+
+                let label = format!("{:>width$} ", task.id, width = label_width);
+
+                let (bar_start, bar_len) = match (started, completed) {
+                    (Some(s), Some(c)) => {
+                        let s_off = (s - earliest).num_seconds().max(0) as f64 / total_secs;
+                        let e_off = (c - earliest).num_seconds().max(0) as f64 / total_secs;
+                        let col = (s_off * bar_area_width as f64) as usize;
+                        let len = ((e_off - s_off) * bar_area_width as f64).ceil() as usize;
+                        (col, len.max(1))
+                    }
+                    (Some(s), None) => {
+                        let s_off = (s - earliest).num_seconds().max(0) as f64 / total_secs;
+                        let e_off = (now - earliest).num_seconds().max(0) as f64 / total_secs;
+                        let col = (s_off * bar_area_width as f64) as usize;
+                        let len = ((e_off - s_off) * bar_area_width as f64).ceil() as usize;
+                        (col, len.max(1))
+                    }
+                    _ => {
+                        // No timing: show status bar from left
+                        let len = match task.status {
+                            TaskStatus::Completed => bar_area_width,
+                            TaskStatus::InProgress => bar_area_width / 2,
+                            _ => 2,
+                        };
+                        (0, len)
+                    }
+                };
+
+                let bar_char = match task.status {
+                    TaskStatus::Completed | TaskStatus::InProgress => '\u{2588}',
+                    _ => '\u{2591}',
+                };
+
+                let connector = if ti == phase.tasks.len() - 1 {
+                    "\u{2514} "
+                } else {
+                    "\u{251C} "
+                };
+
+                let mut bar = String::new();
+                for i in 0..bar_area_width {
+                    if i >= bar_start && i < bar_start + bar_len {
+                        bar.push(bar_char);
+                    } else {
+                        bar.push(' ');
+                    }
+                }
+
+                let line = Line::from(vec![
+                    Span::styled(connector.to_string(), Style::default().fg(Color::DarkGray)),
+                    Span::styled(label, Style::default().fg(Color::White)),
+                    Span::styled(bar, Style::default().fg(color)),
+                ]);
+                lines.push((line, is_selected));
+                line_idx += 1;
+            }
         }
 
         lines
@@ -643,8 +672,8 @@ mod tests {
         let area = Rect::new(0, 0, 80, 20);
         let mut buf = Buffer::empty(area);
         widget.render(area, &mut buf, &mut gs);
-        // 1 header + 8 tasks = 9 lines
-        assert_eq!(gs.total_items, 9);
+        // 1 time header + 3 phase headers + 8 tasks = 12 lines
+        assert_eq!(gs.total_items, 12);
     }
 
     #[test]

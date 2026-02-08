@@ -17,7 +17,7 @@ impl HelpOverlay {
     /// Calculate a centered rect for the help popup
     fn centered_rect(area: Rect) -> Rect {
         let width = 40.min(area.width.saturating_sub(4));
-        let height = 16.min(area.height.saturating_sub(4));
+        let height = 15.min(area.height.saturating_sub(4));
         let x = (area.width.saturating_sub(width)) / 2;
         let y = (area.height.saturating_sub(height)) / 2;
         Rect::new(x, y, width, height)
@@ -62,14 +62,10 @@ impl HelpOverlay {
             ]),
             Line::from(vec![
                 Span::styled("  ?         ", Style::default().fg(Color::Yellow)),
-                Span::raw("Toggle help"),
-            ]),
-            Line::from(vec![
-                Span::styled("  Esc       ", Style::default().fg(Color::Yellow)),
                 Span::raw("Close help"),
             ]),
             Line::from(vec![
-                Span::styled("  q         ", Style::default().fg(Color::Yellow)),
+                Span::styled("  q / Esc   ", Style::default().fg(Color::Yellow)),
                 Span::raw("Quit"),
             ]),
         ]
@@ -112,7 +108,7 @@ mod tests {
         assert!(popup.x > 0);
         assert!(popup.y > 0);
         assert!(popup.width <= 40);
-        assert!(popup.height <= 16);
+        assert!(popup.height <= 15);
     }
 
     #[test]

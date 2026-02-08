@@ -64,7 +64,7 @@ pub fn key_to_action(key: KeyEvent) -> Action {
         KeyCode::Tab => Action::ToggleFocus,
         KeyCode::Char('?') => Action::ToggleHelp,
         KeyCode::Char(' ') => Action::ToggleCollapse,
-        KeyCode::Char('v') => Action::ToggleView,
+        KeyCode::Char('v' | 'ㅍ') => Action::ToggleView,
         _ => Action::None,
     }
 }
