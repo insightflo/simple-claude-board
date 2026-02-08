@@ -5,3 +5,9 @@
 .env
 .claude/
 worktree/
+
+# Internal planning & specs (not for distribution)
+docs/planning/
+specs/
+neurion-proposal.md
+CLAUDE.md
