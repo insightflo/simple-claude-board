@@ -6,20 +6,7 @@
 Real-time visualization of Claude Code agent activity and task progress in your terminal.
 터미널에서 Claude Code 에이전트 활동과 태스크 진행 상황을 실시간으로 시각화합니다.
 
-```
-+------ Tasks (Tree) ---- v:view ---+---------- Detail ----------+
-| ▼ Phase 0 Setup  ████░░ 67%      | P1-R1-T1: Parser impl     |
-|   ├─ [x] P0-T0.1: Cargo setup    | Status: InProgress        |
-|   └─ [/] P0-T0.2: CI setup       | Agent: @backend-specialist|
-| ▶ Phase 1 Data Engine  33%       | Blocked by: P0-T0.1       |
-| ▼ Phase 2 TUI Core     0%        +------ Agents --------------+
-|   ├─ [ ] P2-S1-T1: Gantt         | >> backend-specialist [T1] |
-|   └─ [B] P2-S1-T2: Detail        |    -> Edit                 |
-|                                   | -- test-specialist         |
-+-----------------------------------+----------------------------+
-| ✔2 ◀1 ✘1 ⊘4  25%  uptime: 00:05:12  j/k Tab Space v ? q     |
-+----------------------------------------------------------------+
-```
+![oh-my-claude-board screenshot](assets/screenshot.png)
 
 ## Features / 주요 기능
 
