@@ -5,7 +5,9 @@
 
 use std::time::Duration;
 
-use crossterm::event::{self, Event as CrosstermEvent, KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{
+    self, Event as CrosstermEvent, KeyCode, KeyEvent, KeyEventKind, KeyModifiers,
+};
 
 use crate::data::watcher::FileChange;
 
@@ -27,7 +29,9 @@ pub enum AppEvent {
 pub fn poll_event(timeout: Duration) -> anyhow::Result<Option<AppEvent>> {
     if event::poll(timeout)? {
         match event::read()? {
-            CrosstermEvent::Key(key) => Ok(Some(AppEvent::Key(key))),
+            CrosstermEvent::Key(key) if key.kind == KeyEventKind::Press => {
+                Ok(Some(AppEvent::Key(key)))
+            }
             CrosstermEvent::Resize(w, h) => Ok(Some(AppEvent::Resize(w, h))),
             _ => Ok(None),
         }
@@ -48,12 +52,13 @@ pub enum Action {
 }
 
 /// Convert a key event into an action
+/// Supports Korean IME fallback: ㅂ=q, ㅓ=j, ㅏ=k
 pub fn key_to_action(key: KeyEvent) -> Action {
     match key.code {
-        KeyCode::Char('q') | KeyCode::Esc => Action::Quit,
+        KeyCode::Char('q' | 'ㅂ') | KeyCode::Esc => Action::Quit,
         KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => Action::Quit,
-        KeyCode::Char('j') | KeyCode::Down => Action::MoveDown,
-        KeyCode::Char('k') | KeyCode::Up => Action::MoveUp,
+        KeyCode::Char('j' | 'ㅓ') | KeyCode::Down => Action::MoveDown,
+        KeyCode::Char('k' | 'ㅏ') | KeyCode::Up => Action::MoveUp,
         KeyCode::Tab => Action::ToggleFocus,
         KeyCode::Char('?') => Action::ToggleHelp,
         _ => Action::None,

@@ -34,6 +34,8 @@ pub enum WatcherError {
 pub struct WatchConfig {
     pub tasks_path: PathBuf,
     pub hooks_dir: PathBuf,
+    /// Optional secondary directory for dashboard JSONL events (e.g. ~/.claude/dashboard/)
+    pub events_dir: Option<PathBuf>,
 }
 
 impl WatchConfig {
@@ -41,10 +43,17 @@ impl WatchConfig {
         Self {
             tasks_path,
             hooks_dir,
+            events_dir: None,
         }
     }
 
-    /// Validate that watched paths exist
+    /// Add an optional events directory to watch
+    pub fn with_events_dir(mut self, events_dir: PathBuf) -> Self {
+        self.events_dir = Some(events_dir);
+        self
+    }
+
+    /// Validate that watched paths exist (events_dir is optional)
     pub fn validate(&self) -> Result<(), WatcherError> {
         if !self.tasks_path.exists() {
             return Err(WatcherError::PathNotFound(self.tasks_path.clone()));
@@ -101,6 +110,16 @@ fn classify_event(event: &Event, config: &WatchConfig) -> Option<FileChange> {
             }
             return Some(FileChange::HookEventModified(path.clone()));
         }
+
+        // Also check the secondary events directory
+        if let Some(ref events_dir) = config.events_dir {
+            if is_under_dir(path, events_dir) {
+                if matches!(event.kind, EventKind::Create(_)) {
+                    return Some(FileChange::HookEventCreated(path.clone()));
+                }
+                return Some(FileChange::HookEventModified(path.clone()));
+            }
+        }
     }
 
     None
@@ -136,6 +155,13 @@ pub fn start_watching(
         .unwrap_or_else(|| config.tasks_path.clone());
     watcher.watch(&tasks_parent, RecursiveMode::NonRecursive)?;
     watcher.watch(&config.hooks_dir, RecursiveMode::Recursive)?;
+
+    // Watch the secondary events directory if it exists
+    if let Some(ref events_dir) = config.events_dir {
+        if events_dir.is_dir() {
+            let _ = watcher.watch(events_dir, RecursiveMode::Recursive);
+        }
+    }
 
     Ok((watcher, rx))
 }

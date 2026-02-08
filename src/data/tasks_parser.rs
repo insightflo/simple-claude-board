@@ -120,22 +120,28 @@ pub fn parse_tasks_md(input: &str) -> Result<Vec<ParsedPhase>, String> {
     for line in input.lines() {
         let trimmed = line.trim();
 
-        // H1 heading: # Phase N: Name
-        if trimmed.starts_with("# ") && !trimmed.starts_with("## ") {
-            flush_task(
-                &mut pending_task,
-                &mut current_task_body,
-                &mut current_phase,
-            );
-            if let Some(phase) = current_phase.take() {
-                phases.push(phase);
-            }
+        // Phase heading: "# Phase N: Name" (H1) or "## Phase N: Name" (H2)
+        let phase_header = if trimmed.starts_with("# ") && !trimmed.starts_with("## ") {
+            Some(&trimmed[2..])
+        } else if trimmed.starts_with("## ") && !trimmed.starts_with("### ") {
+            Some(&trimmed[3..])
+        } else {
+            None
+        };
 
-            let header = &trimmed[2..];
+        if let Some(header) = phase_header {
             if let Some(phase) = parse_phase_header(header) {
+                flush_task(
+                    &mut pending_task,
+                    &mut current_task_body,
+                    &mut current_phase,
+                );
+                if let Some(prev) = current_phase.take() {
+                    phases.push(prev);
+                }
                 current_phase = Some(phase);
+                continue;
             }
-            continue;
         }
 
         // H3 heading with status: ### [status] Task-ID: Name
@@ -366,6 +372,26 @@ mod tests {
         let phases = parse_tasks_md(input).unwrap();
         assert!((phases[0].progress() - 1.0).abs() < f32::EPSILON);
         assert!((phases[1].progress() - 0.0).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn h2_phase_headers() {
+        let input = "## Phase 0: 프로젝트 셋업\n\n### [x] P0-T1: 설계 문서 완료\n- **담당**: @orchestrator\n\n---\n\n## Phase 1: 에이전트 정의\n\n### [x] P1-T1: 에이전트 생성\n- **담당**: @backend-specialist\n";
+        let phases = parse_tasks_md(input).unwrap();
+        assert_eq!(phases.len(), 2);
+        assert_eq!(phases[0].id, "P0");
+        assert_eq!(phases[0].name, "프로젝트 셋업");
+        assert_eq!(phases[0].tasks.len(), 1);
+        assert_eq!(phases[1].id, "P1");
+        assert_eq!(phases[1].tasks.len(), 1);
+    }
+
+    #[test]
+    fn h2_non_phase_heading_ignored() {
+        let input = "# Phase 0: Setup\n\n## P0-T0.1: Subheading\n\n### [x] P0-T0.1: Task\n";
+        let phases = parse_tasks_md(input).unwrap();
+        assert_eq!(phases.len(), 1);
+        assert_eq!(phases[0].tasks.len(), 1);
     }
 
     #[test]

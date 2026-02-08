@@ -1,5 +1,5 @@
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time::Duration;
 
 use anyhow::Result;
@@ -29,13 +29,17 @@ struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
 
-    /// Path to TASKS.md
-    #[arg(long, default_value = "./TASKS.md", global = true)]
-    tasks: String,
+    /// Path to TASKS.md (default: ./TASKS.md, fallback: ./docs/planning/06-tasks.md)
+    #[arg(long, global = true)]
+    tasks: Option<String>,
 
     /// Path to Hook events directory
     #[arg(long, global = true)]
     hooks: Option<String>,
+
+    /// Path to dashboard JSONL events directory (default: ~/.claude/dashboard)
+    #[arg(long, global = true)]
+    events: Option<String>,
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -46,11 +50,42 @@ enum Commands {
     Init,
 }
 
+/// Resolve the hooks directory: .claude/hooks > ~/.claude/hooks
+fn resolve_hooks_path() -> PathBuf {
+    let local = PathBuf::from(".claude/hooks");
+    if local.is_dir() {
+        return local;
+    }
+    let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+    let global = PathBuf::from(home).join(".claude").join("hooks");
+    if global.is_dir() {
+        return global;
+    }
+    local
+}
+
+/// Resolve the tasks file path: explicit CLI arg > ./TASKS.md > ./docs/planning/06-tasks.md
+fn resolve_tasks_path(explicit: Option<&str>) -> String {
+    if let Some(path) = explicit {
+        return path.to_string();
+    }
+    let primary = "./TASKS.md";
+    if std::path::Path::new(primary).exists() {
+        return primary.to_string();
+    }
+    let fallback = "./docs/planning/06-tasks.md";
+    if std::path::Path::new(fallback).exists() {
+        return fallback.to_string();
+    }
+    primary.to_string()
+}
+
 fn main() -> Result<()> {
     let cli = Cli::parse();
+    let tasks_path = resolve_tasks_path(cli.tasks.as_deref());
 
     match cli.command.unwrap_or(Commands::Watch) {
-        Commands::Watch => run_tui(&cli.tasks, cli.hooks.as_deref()),
+        Commands::Watch => run_tui(&tasks_path, cli.hooks.as_deref(), cli.events.as_deref()),
         Commands::Init => {
             println!("oh-my-claude-board init (not yet implemented)");
             Ok(())
@@ -68,7 +103,7 @@ fn install_panic_hook() {
     }));
 }
 
-fn run_tui(tasks_path: &str, hooks_dir: Option<&str>) -> Result<()> {
+fn run_tui(tasks_path: &str, hooks_dir: Option<&str>, events_dir: Option<&str>) -> Result<()> {
     // Load initial state
     let dashboard = match std::fs::read_to_string(tasks_path) {
         Ok(content) => DashboardState::from_tasks_content(&content)
@@ -77,17 +112,30 @@ fn run_tui(tasks_path: &str, hooks_dir: Option<&str>) -> Result<()> {
     };
 
     let mut dashboard = dashboard;
-    if let Some(dir) = hooks_dir {
-        let _ = dashboard.load_hook_events(Path::new(dir));
+    let hooks_path = hooks_dir
+        .map(PathBuf::from)
+        .unwrap_or_else(resolve_hooks_path);
+
+    // Resolve events directory: CLI arg > default ~/.claude/dashboard
+    let events_path = events_dir.map(PathBuf::from).unwrap_or_else(|| {
+        let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
+        PathBuf::from(home).join(".claude").join("dashboard")
+    });
+
+    // Load existing hook events at startup
+    if hooks_path.is_dir() {
+        let _ = dashboard.load_hook_events(&hooks_path);
+    }
+    // Also load events from the dashboard events directory
+    if events_path.is_dir() {
+        let _ = dashboard.load_hook_events(&events_path);
     }
 
     let mut app = App::new().with_dashboard(dashboard);
-
-    // Start file watcher (best-effort: if it fails, we just don't get live updates)
-    let hooks_path = hooks_dir
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(".claude/hooks"));
-    let watch_config = WatchConfig::new(PathBuf::from(tasks_path), hooks_path);
+    let mut watch_config = WatchConfig::new(PathBuf::from(tasks_path), hooks_path);
+    if events_path.is_dir() {
+        watch_config = watch_config.with_events_dir(events_path);
+    }
     let watcher_rx = if watch_config.validate().is_ok() {
         match watcher::start_watching(watch_config) {
             Ok((_watcher, rx)) => {
@@ -110,13 +158,18 @@ fn run_tui(tasks_path: &str, hooks_dir: Option<&str>) -> Result<()> {
     execute!(stdout, EnterAlternateScreen)?;
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
+    terminal.clear()?;
 
     let result = run_loop(&mut terminal, &mut app, watcher_rx);
 
     // Restore terminal
     disable_raw_mode()?;
-    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
-    terminal.show_cursor()?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        crossterm::cursor::MoveTo(0, 0),
+        crossterm::cursor::Show
+    )?;
 
     result
 }
