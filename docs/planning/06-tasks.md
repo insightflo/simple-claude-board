@@ -81,7 +81,7 @@ flowchart TD
 
 ## P0-T0.1: 프로젝트 초기화
 
-### [ ] P0-T0.1: Cargo 프로젝트 + 디렉토리 구조 생성
+### [x] P0-T0.1: Cargo 프로젝트 + 디렉토리 구조 생성
 - **담당**: backend-specialist
 - **스펙**: `cargo init oh-my-claude-board` 후 TRD 섹션 6 디렉토리 구조에 맞게 모듈 생성
 - **파일**: `Cargo.toml`, `src/main.rs`, `src/lib.rs`, `src/app.rs`, `src/event.rs`, `src/config.rs`
@@ -97,7 +97,7 @@ flowchart TD
 
 ## P0-T0.2: CI/CD 설정
 
-### [ ] P0-T0.2: GitHub Actions CI 파이프라인
+### [x] P0-T0.2: GitHub Actions CI 파이프라인
 - **담당**: backend-specialist
 - **스펙**: PR 머지 전 품질 게이트 자동화
 - **파일**: `.github/workflows/ci.yml`
@@ -112,7 +112,7 @@ flowchart TD
 
 ## P0-T0.3: 테스트 인프라
 
-### [ ] P0-T0.3: 테스트 픽스처 + 헬퍼
+### [x] P0-T0.3: 테스트 픽스처 + 헬퍼
 - **담당**: test-specialist
 - **스펙**: 테스트용 TASKS.md 샘플, Hook 이벤트 샘플, 테스트 헬퍼 함수
 - **파일**: `tests/fixtures/sample_tasks.md`, `tests/fixtures/sample_hooks/`, `tests/helpers/mod.rs`
@@ -131,7 +131,7 @@ flowchart TD
 
 ## P1-R1: Tasks Parser Resource
 
-### [ ] P1-R1-T1: TASKS.md 파서 구현
+### [x] P1-R1-T1: TASKS.md 파서 구현
 - **담당**: backend-specialist
 - **리소스**: tasks
 - **데이터 수집**: WATCH (file://TASKS.md) + PARSE (Markdown → 구조체)
@@ -156,7 +156,7 @@ flowchart TD
 
 ## P1-R2: Hook Events Parser Resource
 
-### [ ] P1-R2-T1: Hook 이벤트 파서 구현
+### [x] P1-R2-T1: Hook 이벤트 파서 구현
 - **담당**: backend-specialist
 - **리소스**: hook_events
 - **데이터 수집**: WATCH (file://.claude/hooks/events/) + PARSE (JSON Lines)
@@ -179,7 +179,7 @@ flowchart TD
 
 ## P1-R3: File Watcher Resource
 
-### [ ] P1-R3-T1: 파일 감시 모듈 구현
+### [x] P1-R3-T1: 파일 감시 모듈 구현
 - **담당**: backend-specialist
 - **리소스**: tasks, hook_events (공통 감시)
 - **데이터 수집**: WATCH (notify crate)
@@ -202,7 +202,7 @@ flowchart TD
 
 ## P1-R4: Unified State Model
 
-### [ ] P1-R4-T1: 통합 상태 모델 구현
+### [x] P1-R4-T1: 통합 상태 모델 구현
 - **담당**: backend-specialist
 - **리소스**: session (COMPUTE - 인메모리 상태)
 - **필드**: tasks_md_path, hooks_dir, started_at, total_tasks, completed_tasks, failed_tasks, overall_progress, uptime
@@ -223,7 +223,7 @@ flowchart TD
   - [ ] TASKS.md + Hook 이벤트 병합 시나리오 테스트
   - [ ] 빈 상태(TASKS.md 없음) 처리 확인
 
-### [ ] P1-R4-V: Data Engine 연결점 검증
+### [x] P1-R4-V: Data Engine 연결점 검증
 - **담당**: test-specialist
 - **검증 항목**:
   - [ ] Field Coverage: tasks.[phases, phase_id, phase_name, phase_status, phase_progress, task_id, task_name, task_status, task_agent, task_blocked_by] 파서 출력에 존재
@@ -242,7 +242,7 @@ flowchart TD
 
 ## P2-S0: 공통 레이아웃
 
-### [ ] P2-S0-T1: 메인 대시보드 레이아웃 구현
+### [x] P2-S0-T1: 메인 대시보드 레이아웃 구현
 - **담당**: backend-specialist
 - **화면**: S-01 메인 대시보드
 - **컴포넌트**: left_panel (container), right_panel (container)
@@ -264,7 +264,7 @@ flowchart TD
   - [ ] Tab 포커스 전환 동작
   - [ ] 터미널 리사이즈 대응
 
-### [ ] P2-S0-T2: 이벤트 루프 + App 구조체
+### [x] P2-S0-T2: 이벤트 루프 + App 구조체
 - **담당**: backend-specialist
 - **파일**: `tests/app_test.rs` → `src/app.rs`, `src/event.rs`
 - **스펙**: Tokio 기반 메인 이벤트 루프
@@ -286,7 +286,7 @@ flowchart TD
 
 ## P2-S1: 간트차트 패널
 
-### [ ] P2-S1-T1: 간트차트 위젯 구현
+### [x] P2-S1-T1: 간트차트 위젯 구현
 - **담당**: backend-specialist
 - **화면**: S-02 간트차트 패널
 - **컴포넌트**: phase_row (list), task_row (list), cursor_highlight (detail)
@@ -310,7 +310,7 @@ flowchart TD
   - [ ] Space 토글 동작
   - [ ] 실시간 업데이트 시 커서 위치 유지
 
-### [ ] P2-S1-T2: 간트차트 통합 테스트
+### [x] P2-S1-T2: 간트차트 통합 테스트
 - **담당**: test-specialist
 - **화면**: S-02
 - **시나리오**:
@@ -327,7 +327,7 @@ flowchart TD
 
 ## P2-S2: 태스크 상세 패널
 
-### [ ] P2-S2-T1: 태스크 상세 위젯 구현
+### [x] P2-S2-T1: 태스크 상세 위젯 구현
 - **담당**: backend-specialist
 - **화면**: S-03 태스크 상세 패널
 - **컴포넌트**: task_header (detail), task_metadata (detail), task_logs (list), error_section (detail)
@@ -352,7 +352,7 @@ flowchart TD
 
 ## P2-S3: Claude Code 출력 패널
 
-### [ ] P2-S3-T1: Claude Code 출력 위젯 구현
+### [x] P2-S3-T1: Claude Code 출력 위젯 구현
 - **담당**: backend-specialist
 - **화면**: S-05 Claude Code 출력
 - **컴포넌트**: output_viewer (list)
@@ -378,7 +378,7 @@ flowchart TD
 
 ## P2-S4: 상태바
 
-### [ ] P2-S4-T1: 상태바 위젯 구현
+### [x] P2-S4-T1: 상태바 위젯 구현
 - **담당**: backend-specialist
 - **화면**: S-06 상태바
 - **컴포넌트**: progress_summary (stat-card), status_counters (stat-card), uptime_display (detail), help_hint (detail), warning_icon (alert)
@@ -403,7 +403,7 @@ flowchart TD
 
 ## P2-S5: 도움말 오버레이
 
-### [ ] P2-S5-T1: 도움말 오버레이 위젯 구현
+### [x] P2-S5-T1: 도움말 오버레이 위젯 구현
 - **담당**: backend-specialist
 - **화면**: S-07 도움말 오버레이
 - **컴포넌트**: keybinding_list (list), version_info (detail)
@@ -424,7 +424,7 @@ flowchart TD
   - [ ] 오버레이 렌더링 스냅샷 테스트
   - [ ] ?/Esc 토글 동작
 
-### [ ] P2-V: TUI Core 연결점 검증
+### [x] P2-V: TUI Core 연결점 검증
 - **담당**: test-specialist
 - **검증 항목**:
   - [ ] Field Coverage: tasks.[phase_id, phase_name, phase_status, phase_progress, task_id, task_name, task_status, task_agent] → 간트차트에 표시
