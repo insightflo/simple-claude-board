@@ -13,6 +13,55 @@ use ratatui::{
 use crate::data::state::{DashboardState, ErrorRecord};
 use crate::data::tasks_parser::{ParsedPhase, ParsedTask, TaskStatus};
 
+/// Parse a markdown line into styled spans.
+/// Handles **bold**, `code`, and plain text segments.
+fn parse_md_spans(line: &str) -> Vec<Span<'static>> {
+    let mut spans = Vec::new();
+    let mut rest = line;
+
+    while !rest.is_empty() {
+        // Bold: **text**
+        if let Some(start) = rest.find("**") {
+            if start > 0 {
+                spans.push(Span::raw(rest[..start].to_string()));
+            }
+            let after = &rest[start + 2..];
+            if let Some(end) = after.find("**") {
+                spans.push(Span::styled(
+                    after[..end].to_string(),
+                    Style::default()
+                        .fg(Color::White)
+                        .add_modifier(Modifier::BOLD),
+                ));
+                rest = &after[end + 2..];
+            } else {
+                spans.push(Span::raw(rest[start..].to_string()));
+                return spans;
+            }
+        // Code: `text`
+        } else if let Some(start) = rest.find('`') {
+            if start > 0 {
+                spans.push(Span::raw(rest[..start].to_string()));
+            }
+            let after = &rest[start + 1..];
+            if let Some(end) = after.find('`') {
+                spans.push(Span::styled(
+                    after[..end].to_string(),
+                    Style::default().fg(Color::Yellow),
+                ));
+                rest = &after[end + 1..];
+            } else {
+                spans.push(Span::raw(rest[start..].to_string()));
+                return spans;
+            }
+        } else {
+            spans.push(Span::raw(rest.to_string()));
+            return spans;
+        }
+    }
+    spans
+}
+
 /// What the detail panel is showing
 pub enum DetailContent<'a> {
     Phase(&'a ParsedPhase),
@@ -160,7 +209,7 @@ impl<'a> DetailWidget<'a> {
                 if !task.body.is_empty() {
                     lines.push(Line::raw(""));
                     for body_line in task.body.lines() {
-                        lines.push(Line::raw(body_line.to_string()));
+                        lines.push(Line::from(parse_md_spans(body_line)));
                     }
                 }
 

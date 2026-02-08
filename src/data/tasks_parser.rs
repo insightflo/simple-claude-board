@@ -130,19 +130,30 @@ pub fn parse_tasks_md(input: &str) -> Result<Vec<ParsedPhase>, String> {
             None
         };
 
+        // Any H1/H2 heading ends the current task body
         if let Some(header) = phase_header {
+            flush_task(
+                &mut pending_task,
+                &mut current_task_body,
+                &mut current_phase,
+            );
             if let Some(phase) = parse_phase_header(header) {
-                flush_task(
-                    &mut pending_task,
-                    &mut current_task_body,
-                    &mut current_phase,
-                );
                 if let Some(prev) = current_phase.take() {
                     phases.push(prev);
                 }
                 current_phase = Some(phase);
-                continue;
             }
+            continue;
+        }
+
+        // Horizontal rule ends the current task body
+        if trimmed == "---" {
+            flush_task(
+                &mut pending_task,
+                &mut current_task_body,
+                &mut current_phase,
+            );
+            continue;
         }
 
         // H3 heading with status: ### [status] Task-ID: Name
