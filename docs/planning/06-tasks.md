@@ -447,7 +447,7 @@ flowchart TD
 
 ## P3-R1: Error Analysis Resource
 
-### [ ] P3-R1-T1: 규칙 기반 에러 분석 엔진
+### [x] P3-R1-T1: 규칙 기반 에러 분석 엔진
 - **담당**: backend-specialist
 - **리소스**: error_analysis
 - **데이터 수집**: ANALYZE (internal://rules-engine)
@@ -476,7 +476,7 @@ flowchart TD
 
 ## P3-S1: 에러 재시도 모달
 
-### [ ] P3-S1-T1: 에러 재시도 모달 구현
+### [x] P3-S1-T1: 에러 재시도 모달 구현
 - **담당**: backend-specialist
 - **화면**: S-04 에러 분석 + 재시도
 - **컴포넌트**: retry_confirm (modal), retry_progress (detail)
@@ -497,7 +497,7 @@ flowchart TD
   - [ ] retryable=false 시 비활성화 확인
   - [ ] 재시도 후 상태 업데이트 확인
 
-### [ ] P3-S1-V: Error Analysis 연결점 검증
+### [x] P3-S1-V: Error Analysis 연결점 검증
 - **담당**: test-specialist
 - **검증 항목**:
   - [ ] Field Coverage: error_analysis.[error_message, category, analysis, retryable, suggestion] → 상세패널 + 모달에 표시
@@ -516,7 +516,7 @@ flowchart TD
 
 ## P4-T1: 풀 통합 테스트
 
-### [ ] P4-T1: 전체 파이프라인 통합 테스트
+### [x] P4-T1: 전체 파이프라인 통합 테스트
 - **담당**: test-specialist
 - **파일**: `tests/integration/full_pipeline_test.rs`
 - **스펙**: 전체 데이터 흐름 + UI 통합 검증
@@ -532,7 +532,7 @@ flowchart TD
 
 ## P4-T2: 성능 최적화
 
-### [ ] P4-T2: 성능 벤치마크 + 최적화
+### [x] P4-T2: 성능 벤치마크 + 최적화
 - **담당**: backend-specialist
 - **파일**: `benches/parser_bench.rs`, `benches/render_bench.rs`
 - **스펙**: criterion 벤치마크 기반 성능 검증 및 최적화
@@ -548,7 +548,7 @@ flowchart TD
 
 ## P4-T3: 배포 준비
 
-### [ ] P4-T3: crates.io + GitHub Releases 배포
+### [x] P4-T3: crates.io + GitHub Releases 배포
 - **담당**: backend-specialist
 - **파일**: `Cargo.toml` (메타데이터), `.github/workflows/release.yml`
 - **스펙**: 배포 파이프라인 구성
