@@ -12,6 +12,7 @@ Real-time visualization of Claude Code agent activity and task progress in your 
 
 - **Live task tracking** -- Watches `TASKS.md` and updates the Gantt chart on every save
 - **Agent activity panel** -- Shows which Claude Code agents are running, their current tools, and errors
+- **Rich agent detail** -- Tool usage stats, recent tool sequence (last 10), session ID, and task name cross-reference
 - **Hook event bridge** -- Includes `event-logger.js` hook that logs tool use to JSONL for the dashboard to consume
 - **Error analysis & retry** -- Rule-based error categorization (12 patterns) with retry modal (`r` key)
 - **File watcher** -- Uses `notify` for filesystem events (FSEvents on macOS, inotify on Linux)
@@ -237,7 +238,7 @@ src/
 ## Development
 
 ```bash
-# Run tests (168 lib + 49 integration tests)
+# Run tests (192 lib + 62 integration tests)
 cargo test
 
 # Run with ignored tests (macOS watcher flaky tests)
