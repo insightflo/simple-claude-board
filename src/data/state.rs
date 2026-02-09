@@ -28,6 +28,9 @@ pub struct TaskHistoryEntry {
     pub completed_at: Option<DateTime<Utc>>,
 }
 
+/// Maximum number of recent tools to track per agent
+const MAX_RECENT_TOOLS: usize = 10;
+
 /// A snapshot of one agent's current state
 #[derive(Debug, Clone)]
 pub struct AgentState {
@@ -40,6 +43,9 @@ pub struct AgentState {
     pub task_history: Vec<TaskHistoryEntry>,
     pub first_seen: Option<DateTime<Utc>>,
     pub last_seen: Option<DateTime<Utc>>,
+    pub tool_counts: HashMap<String, usize>,
+    pub recent_tools: Vec<String>,
+    pub session_id: Option<String>,
 }
 
 /// Timing info for a task derived from hook events
@@ -155,6 +161,9 @@ impl DashboardState {
                     task_history: Vec::new(),
                     first_seen: None,
                     last_seen: None,
+                    tool_counts: HashMap::new(),
+                    recent_tools: Vec::new(),
+                    session_id: None,
                 });
 
             agent.event_count += 1;
@@ -162,6 +171,7 @@ impl DashboardState {
             if agent.first_seen.is_none() {
                 agent.first_seen = Some(event.timestamp);
             }
+            agent.session_id = Some(event.session_id.clone());
 
             match event.event_type {
                 EventType::AgentStart => {
@@ -198,6 +208,13 @@ impl DashboardState {
                 EventType::ToolStart => {
                     agent.status = AgentStatus::Running;
                     agent.current_tool = event.tool_name.clone();
+                    if let Some(ref name) = event.tool_name {
+                        *agent.tool_counts.entry(name.clone()).or_insert(0) += 1;
+                        agent.recent_tools.push(name.clone());
+                        if agent.recent_tools.len() > MAX_RECENT_TOOLS {
+                            agent.recent_tools.remove(0);
+                        }
+                    }
                 }
                 EventType::ToolEnd => {
                     agent.current_tool = None;
@@ -602,6 +619,68 @@ mod tests {
         );
         assert!(agent.first_seen.is_some());
         assert!(agent.last_seen.is_some());
+    }
+
+    #[test]
+    fn tool_counts_tracked_on_tool_start() {
+        let input = include_str!("../../tests/fixtures/sample_hooks/agent_events.jsonl");
+        let result = hook_parser::parse_hook_events(input);
+
+        let mut state = DashboardState::default();
+        state.update_from_events(&result.events);
+
+        let agent = state.agents.get("backend-specialist-1").unwrap();
+        // agent_events.jsonl has tool_start for Read and Write
+        assert_eq!(agent.tool_counts.get("Read"), Some(&1));
+        assert_eq!(agent.tool_counts.get("Write"), Some(&1));
+        assert_eq!(agent.tool_counts.len(), 2);
+    }
+
+    #[test]
+    fn recent_tools_tracked_on_tool_start() {
+        let input = include_str!("../../tests/fixtures/sample_hooks/agent_events.jsonl");
+        let result = hook_parser::parse_hook_events(input);
+
+        let mut state = DashboardState::default();
+        state.update_from_events(&result.events);
+
+        let agent = state.agents.get("backend-specialist-1").unwrap();
+        assert_eq!(agent.recent_tools, vec!["Read", "Write"]);
+    }
+
+    #[test]
+    fn recent_tools_capped_at_max() {
+        let mut state = DashboardState::default();
+        let events: Vec<HookEvent> = (0..15)
+            .map(|i| HookEvent {
+                event_type: EventType::ToolStart,
+                timestamp: Utc::now(),
+                agent_id: "agent-1".to_string(),
+                task_id: "T-1".to_string(),
+                session_id: "sess-1".to_string(),
+                tool_name: Some(format!("Tool{i}")),
+                error_message: None,
+            })
+            .collect();
+        state.update_from_events(&events);
+
+        let agent = state.agents.get("agent-1").unwrap();
+        assert_eq!(agent.recent_tools.len(), 10);
+        // Oldest 5 should be evicted; first remaining is Tool5
+        assert_eq!(agent.recent_tools[0], "Tool5");
+        assert_eq!(agent.recent_tools[9], "Tool14");
+    }
+
+    #[test]
+    fn session_id_tracked_from_events() {
+        let input = include_str!("../../tests/fixtures/sample_hooks/agent_events.jsonl");
+        let result = hook_parser::parse_hook_events(input);
+
+        let mut state = DashboardState::default();
+        state.update_from_events(&result.events);
+
+        let agent = state.agents.get("backend-specialist-1").unwrap();
+        assert_eq!(agent.session_id.as_deref(), Some("sess-001"));
     }
 
     #[test]
